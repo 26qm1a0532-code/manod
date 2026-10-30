@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TIME FREEZE | Arcade Challenge</title>
+
+<style>
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  background: #080d1b;
+  color: white;
+  font-family: Arial, sans-serif;
+  min-height: 100vh;
+  padding: 20px;
+}
+
+.container {
+  max-width: 1000px;
+  margin: auto;
+  text-align: center;
+}
+
+header h1 {
+  font-size: 42px;
+  color: #36d9ff;
+  text-shadow: 0 0 20px #00bfff;
+  margin: 15px;
+  letter-spacing: 4px;
+}
+
+header p {
+  color: #9bb2d0;
+  margin-bottom: 25px;
+}
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.stat {
+  background: #15213a;
+  border: 1px solid #24537a;
+  padding: 15px;
+  border-radius: 12px;
+}
+
+.stat span {
+  display: block;
+  color: #9bb2d0;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+
+.stat strong {
+  color: #36d9ff;
+  font-size: 25px;
+}
+
+.arena {
+  position: relative;
+  border: 2px solid #36d9ff;
+  border-radius: 15px;
+  overflow: hidden;
+  box-shadow: 0 0 25px #00bfff55;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  background: #101b30;
+}
+
+.overlay {
+  position: absolute;
+  inset: 0;
+  background: #050b19eF;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  gap: 18px;
+  padding: 20px;
+}
+
+.overlay.hidden {
+  display: none;
+}
+
+.overlay h2 {
+  color: #36d9ff;
+  font-size: 40px;
+}
+
+.overlay p {
+  color: #c5d5e9;
+}
+
+button {
+  padding: 13px 22px;
+  border: none;
+  border-radius: 9px;
+  background: #20cfff;
+  color: #06111c;
+  font-weight: bold;
+  cursor: pointer;
+  transition: .2s;
+}
+
+button:hover {
+  background: #8cecff;
+  transform: translateY(-2px);
+}
+
+button:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.controls {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 15px;
+  flex-wrap: wrap;
+  margin: 22px 0;
+}
+
+.ability {
+  min-width: 220px;
+}
+
+#freezeStatus {
+  color: #36d9ff;
+  margin-bottom: 8px;
+  font-weight: bold;
+}
+
+.bar {
+  height: 9px;
+  background: #26344c;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+#freezeBar {
+  width: 100%;
+  height: 100%;
+  background: #36d9ff;
+}
+
+#freezeText {
+  color: #a8b6cb;
+  font-size: 12px;
+  margin-top: 7px;
+}
+
+.instructions, .leaderboard {
+  background: #15213a;
+  border: 1px solid #263e61;
+  border-radius: 12px;
+  padding: 20px;
+  margin-top: 18px;
+  line-height: 1.9;
+}
+
+.instructions h3, .leaderboard h3 {
+  color: #36d9ff;
+  margin-bottom: 10px;
+}
+
+.instructions p {
+  color: #c0cee0;
+}
+
+.leaderboard ol {
+  display: inline-block;
+  text-align: left;
+  padding-left: 25px;
+  color: #ffd43b;
+}
+
+footer {
+  margin: 25px;
+  color: #71829f;
+  font-size: 12px;
+}
+
+@media(max-width:600px) {
+  body { padding: 10px; }
+  header h1 { font-size: 29px; }
+  .stat { padding: 10px 3px; }
+  .stat strong { font-size: 19px; }
+  .controls { gap: 10px; }
+}
+</style>
+</head>
+
+<body>
+<div class="container">
+
+<header>
+  <h1>❄ TIME FREEZE</h1>
+  <p>Freeze the world. Collect the rewards. Beat the clock.</p>
+</header>
+
+<section class="stats">
+  <div class="stat">
+    <span>SCORE</span>
+    <strong id="score">0</strong>
+  </div>
+  <div class="stat">
+    <span>TIME LEFT</span>
+    <strong id="timer">60</strong>
+  </div>
+  <div class="stat">
+    <span>BEST SCORE</span>
+    <strong id="best">0</strong>
+  </div>
+</section>
+
+<div class="arena">
+  <canvas id="game" width="900" height="540"></canvas>
+
+  <div class="overlay" id="overlay">
+    <h2 id="overlayTitle">TIME FREEZE</h2>
+    <p id="overlayText">
+      Collect coins and avoid dangerous enemies!
+    </p>
+    <button id="startBtn">START GAME</button>
+  </div>
+</div>
+
+<section class="controls">
+  <div class="ability">
+    <p id="freezeStatus">❄ FREEZE READY</p>
+    <div class="bar">
+      <div id="freezeBar"></div>
+    </div>
+    <p id="freezeText">3 seconds available</p>
+  </div>
+
+  <button id="freezeBtn">❄ FREEZE TIME</button>
+  <button id="pauseBtn">⏸ PAUSE</button>
+  <button id="soundBtn">🔊 SOUND ON</button>
+</section>
+
+<section class="instructions">
+  <h3>🎮 HOW TO PLAY</h3>
+  <p>↑ ↓ ← → or W A S D : Move</p>
+  <p>SPACE : Freeze enemy movement for 3 seconds</p>
+  <p>Collect yellow coins : +10 points</p>
+  <p>Avoid red enemies to survive!</p>
+  <p>Freeze cooldown : 5 seconds after the freeze ends</p>
+</section>
+
+<section class="leaderboard">
+  <h3>🏆 TOP SCORES</h3>
+  <ol id="leaderboard"></ol>
+</section>
+
+<footer>TIME FREEZE © 2026 | GAMIFIED COMPETITION</footer>
+
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const $ = id => document.getElementById(id);
+
+const W = canvas.width;
+const H = canvas.height;
+
+const FREEZE_DURATION = 3;
+const COOLDOWN = 5;
+const GAME_DURATION = 60;
+
+let player, enemies, coins;
+let score = 0;
+let timeLeft = GAME_DURATION;
+let freezeLeft = 0;
+let cooldownLeft = 0;
+
+let running = false;
+let paused = false;
+let gameOver = false;
+let keys = {};
+let lastTime = 0;
+let animationId = null;
+let soundOn = true;
+let audioContext = null;
+
+let best = Number(localStorage.getItem("tfBest")) || 0;
+
+$("best").textContent = best;
+
+function playSound(frequency = 500) {
+  if (!soundOn) return;
+
+  try {
+    audioContext ||= new (
+      window.AudioContext || window.webkitAudioContext
+    )();
+
+    if (audioContext.state === "suspended") {
+      audioContext.resume();
+    }
+
+    const oscillator = audioContext.createOscillator();
+    const gain = audioContext.createGain();
+
+    oscillator.frequency.value = frequency;
+    gain.gain.value = 0.07;
+
+    oscillator.connect(gain);
+    gain.connect(audioContext.destination);
+
+    oscillator.start();
+    oscillator.stop(audioContext.currentTime + 0.12);
+  } catch (e) {
+    console.log("Sound unavailable");
+  }
+}
+
+function spawnCoin() {
+  let coin;
+
+  do {
+    coin = {
+      x: 25 + Math.random() * (W - 50),
+      y: 25 + Math.random() * (H - 50),
+      r: 9
+    };
+  } while (
+    player &&
+    Math.hypot(coin.x-player.x, coin.y-player.y) < 65
+  );
+
+  coins.push(coin);
+}
+
+function resetGame() {
+  cancelAnimationFrame(animationId);
+
+  score = 0;
+  timeLeft = GAME_DURATION;
+  freezeLeft = 0;
+  cooldownLeft = 0;
+
+  paused = false;
+  gameOver = false;
+
+  player = {
+    x: W / 2,
+    y: H / 2,
+    r: 13,
+    speed: 260
+  };
+
+  enemies = [
+    {x:100,y:100,vx:155,vy:110,r:17},
+    {x:750,y:130,vx:-130,vy:145,r:17},
+    {x:400,y:440,vx:160,vy:-120,r:16},
+    {x:650,y:400,vx:-120,vy:-145,r:15}
+  ];
+
+  coins = [];
+
+  for(let i=0;i<8;i++) spawnCoin();
+
+  $("score").textContent = 0;
+  $("timer").textContent = 60;
+  $("pauseBtn").textContent = "⏸ PAUSE";
+
+  updateFreezeUI();
+  draw();
+}
+
+function startGame() {
+  resetGame();
+
+  running = true;
+  lastTime = performance.now();
+
+  $("overlay").classList.add("hidden");
+  requestAnimationFrame(gameLoop);
+}
+
+function endGame(reason) {
+  if(gameOver) return;
+
+  gameOver = true;
+  running = false;
+
+  cancelAnimationFrame(animationId);
+
+  if(score > best) {
+    best = score;
+    localStorage.setItem("tfBest", best);
+    $("best").textContent = best;
+  }
+
+  saveLeaderboard(score);
+
+  $("overlayTitle").textContent = "GAME OVER";
+  $("overlayText").textContent = reason + " Final score: " + score;
+  $("startBtn").textContent = "PLAY AGAIN";
+  $("overlay").classList.remove("hidden");
+
+  playSound(180);
+}
+
+function activateFreeze() {
+  if(!running || paused || gameOver) return;
+  if(freezeLeft > 0 || cooldownLeft > 0) return;
+
+  freezeLeft = FREEZE_DURATION;
+  cooldownLeft = FREEZE_DURATION + COOLDOWN;
+
+  playSound(850);
+  updateFreezeUI();
+}
+
+function updateFreezeUI() {
+  $("freezeBtn").disabled =
+    !running || paused || freezeLeft > 0 || cooldownLeft > 0;
+
+  if(freezeLeft > 0) {
+    $("freezeStatus").textContent = "❄ TIME FROZEN!";
+    $("freezeText").textContent =
+      freezeLeft.toFixed(1) + " seconds remaining";
+
+    $("freezeBar").style.width =
+      (freezeLeft / FREEZE_DURATION * 100) + "%";
+
+  } else if(cooldownLeft > 0) {
+    $("freezeStatus").textContent = "⌛ COOLDOWN";
+
+    $("freezeText").textContent =
+      cooldownLeft.toFixed(1) + " seconds remaining";
+
+    $("freezeBar").style.width =
+      (cooldownLeft / (FREEZE_DURATION + COOLDOWN) * 100) + "%";
+
+  } else {
+    $("freezeStatus").textContent = "❄ FREEZE READY";
+    $("freezeText").textContent = "3 seconds available";
+    $("freezeBar").style.width = "100%";
+  }
+}
+
+function movePlayer(dt) {
+  let dx = 0;
+  let dy = 0;
+
+  if(keys["arrowup"] || keys["w"]) dy--;
+  if(keys["arrowdown"] || keys["s"]) dy++;
+  if(keys["arrowleft"] || keys["a"]) dx--;
+  if(keys["arrowright"] || keys["d"]) dx++;
+
+  if(dx || dy) {
+    const length = Math.hypot(dx,dy);
+    dx /= length;
+    dy /= length;
+  }
+
+  player.x += dx * player.speed * dt;
+  player.y += dy * player.speed * dt;
+
+  player.x = Math.max(player.r,Math.min(W-player.r,player.x));
+  player.y = Math.max(player.r,Math.min(H-player.r,player.y));
+}
+
+function moveEnemies(dt) {
+  if(freezeLeft > 0) return;
+
+  enemies.forEach(e => {
+    e.x += e.vx * dt;
+    e.y += e.vy * dt;
+
+    if(e.x < e.r || e.x > W-e.r) e.vx *= -1;
+    if(e.y < e.r || e.y > H-e.r) e.vy *= -1;
+
+    e.x = Math.max(e.r,Math.min(W-e.r,e.x));
+    e.y = Math.max(e.r,Math.min(H-e.r,e.y));
+  });
+}
+
+function collisions() {
+  coins = coins.filter(c => {
+    const d = Math.hypot(player.x-c.x,player.y-c.y);
+
+    if(d < player.r+c.r) {
+      score += 10;
+      $("score").textContent = score;
+      playSound(700);
+      return false;
+    }
+
+    return true;
+  });
+
+  while(coins.length < 8) spawnCoin();
+
+  if(freezeLeft <= 0) {
+    for(const e of enemies) {
+      const d = Math.hypot(player.x-e.x,player.y-e.y);
+
+      if(d < player.r+e.r) {
+        endGame("An enemy caught you!");
+        return;
+      }
+    }
+  }
+}
+
+function update(dt) {
+  if(!running || paused || gameOver) return;
+
+  timeLeft -= dt;
+
+  if(timeLeft <= 0) {
+    timeLeft = 0;
+    $("timer").textContent = 0;
+    endGame("Time is up!");
+    return;
+  }
+
+  $("timer").textContent = Math.ceil(timeLeft);
+
+  if(freezeLeft > 0) {
+    freezeLeft = Math.max(0,freezeLeft-dt);
+  }
+
+  if(cooldownLeft > 0) {
+    cooldownLeft = Math.max(0,cooldownLeft-dt);
+  }
+
+  movePlayer(dt);
+  moveEnemies(dt);
+  collisions();
+  updateFreezeUI();
+}
+
+function circle(x,y,r,color,glow) {
+  ctx.save();
+  ctx.shadowBlur = glow;
+  ctx.shadowColor = color;
+  ctx.fillStyle = color;
+
+  ctx.beginPath();
+  ctx.arc(x,y,r,0,Math.PI*2);
+  ctx.fill();
+
+  ctx.restore();
+}
+
+function draw() {
+  ctx.fillStyle = "#101b30";
+  ctx.fillRect(0,0,W,H);
+
+  // Background grid
+  ctx.strokeStyle = "#1e314b";
+  ctx.lineWidth = 1;
+
+  for(let x=0;x<W;x+=45) {
+    ctx.beginPath();
+    ctx.moveTo(x,0);
+    ctx.lineTo(x,H);
+    ctx.stroke();
+  }
+
+  for(let y=0;y<H;y+=45) {
+    ctx.beginPath();
+    ctx.moveTo(0,y);
+    ctx.lineTo(W,y);
+    ctx.stroke();
+  }
+
+  // Coins
+  coins.forEach(c => {
+    circle(c.x,c.y,c.r,"#ffd43b",20);
+  });
+
+  // Enemies
+  enemies.forEach(e => {
+    circle(e.x,e.y,e.r,"#ff405c",20);
+  });
+
+  // Player
+  circle(player.x,player.y,player.r,"#36d9ff",25);
+
+  if(freezeLeft > 0) {
+    ctx.fillStyle = "#36d9ff15";
+    ctx.fillRect(0,0,W,H);
+
+    ctx.fillStyle = "#80eaff";
+    ctx.font = "bold 22px Arial";
+    ctx.textAlign = "center";
+    ctx.fillText("TIME FROZEN ❄",W/2,35);
+  }
+}
+
+function gameLoop(timestamp) {
+  if(!running || paused) return;
+
+  const dt = Math.min((timestamp-lastTime)/1000,0.05);
+  lastTime = timestamp;
+
+  update(dt);
+  draw();
+
+  if(running && !paused) {
+    animationId = requestAnimationFrame(gameLoop);
+  }
+}
+
+function pauseGame() {
+  if(!running || gameOver) return;
+
+  paused = !paused;
+
+  if(paused) {
+    cancelAnimationFrame(animationId);
+
+    $("overlayTitle").textContent = "GAME PAUSED";
+    $("overlayText").textContent = "Take a break!";
+    $("startBtn").textContent = "RESUME GAME";
+    $("overlay").classList.remove("hidden");
+
+    $("pauseBtn").textContent = "▶ RESUME";
+
+  } else {
+    $("overlay").classList.add("hidden");
+    $("pauseBtn").textContent = "⏸ PAUSE";
+
+    lastTime = performance.now();
+    animationId = requestAnimationFrame(gameLoop);
+  }
+
+  updateFreezeUI();
+}
+
+function saveLeaderboard(newScore) {
+  let scores = JSON.parse(
+    localStorage.getItem("tfScores") || "[]"
+  );
+
+  scores.push(newScore);
+  scores.sort((a,b) => b-a);
+
+  scores = scores.slice(0,10);
+
+  localStorage.setItem("tfScores",JSON.stringify(scores));
+
+  displayLeaderboard();
+}
+
+function displayLeaderboard() {
+  let scores = JSON.parse(
+    localStorage.getItem("tfScores") || "[]"
+  );
+
+  $("leaderboard").innerHTML = "";
+
+  if(scores.length === 0) {
+    $("leaderboard").innerHTML = "<li>Play to add your score!</li>";
+    return;
+  }
+
+  scores.forEach(s => {
+    const li = document.createElement("li");
+    li.textContent = s + " points";
+    $("leaderboard").appendChild(li);
+  });
+}
+
+// Keyboard controls
+document.addEventListener("keydown",e => {
+  const k = e.key.toLowerCase();
+
+  if(["arrowup","arrowdown","arrowleft","arrowright"," "].includes(k)) {
+    e.preventDefault();
+  }
+
+  keys[k] = true;
+
+  if(k === " " && !e.repeat) activateFreeze();
+  if(k === "escape") pauseGame();
+});
+
+document.addEventListener("keyup",e => {
+  keys[e.key.toLowerCase()] = false;
+});
+
+// Buttons
+$("startBtn").addEventListener("click",() => {
+  if(paused && running) {
+    pauseGame();
+  } else {
+    startGame();
+  }
+});
+
+$("freezeBtn").addEventListener("click",activateFreeze);
+$("pauseBtn").addEventListener("click",pauseGame);
+
+$("soundBtn").addEventListener("click",() => {
+  soundOn = !soundOn;
+  $("soundBtn").textContent = soundOn ? "🔊 SOUND ON" : "🔇 SOUND OFF";
+});
+
+// Initial screen
+resetGame();
+displayLeaderboard();
+
+</script>
+</body>
+</html>
+
